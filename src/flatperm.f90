@@ -38,6 +38,7 @@ contains
         history_atmo = 0
         history_steps = 0
         history_W = 0.0_qp
+        ! initialise state
         chain = 0
         micro = 1
         call reset_visits(visits)
@@ -49,6 +50,7 @@ contains
             W = 1.0_qp
         end if
         call add_visit(visits, origin, micro(1))
+        ! add trivial state to data arrays
         ! W = 1.0_qp
         !$omp atomic update
             Z(micro(1),micro(2),micro(3)) = Z(micro(1),micro(2),micro(3)) + W
@@ -89,15 +91,15 @@ tour:   do while (.not. interruptQ)
                 endif
                 ! shrink chain to previous enrichment
 shrink:         do while (micro(1) > prevenr)
-                    !! need to check when while loop condition is checked compared to Mathematica
                     call unstep(chain, visits, micro, i_hist, history_enr)
                 enddo shrink
-                ! call update_micro(chain(:,1:micro(1)),0,micro)
+                ! call update_micro(chain(:,1:micro(1)),0,micro)    ! updated later
                 if (any( micro .le. 0 )) then
                     write(*,*) 'Invalid microcanonical weights (unstep).'
                     write(*,*) micro
                     stop
                 endif
+                ! restore some state variables to earlier state
                 W = history_W(i_hist)
                 if (fixedQ) fixm_total = history_fixed(i_hist)
                 if (fixed2Q) fix2m_total = history_fixed2(i_hist)
@@ -120,10 +122,6 @@ shrink:         do while (micro(1) > prevenr)
             call step(W, chain, visits, micro, i_hist, fixm_total, fix2m_total, history_enr, history_atmo, &
                 history_steps, history_fixed, history_fixed2, history_W)
 
-            ! if (percQ) then
-            !     if (holes%key_count() > max_holes) max_holes=holes%key_count()
-            ! endif
-
         end do tour
 
         ! deallocate hash tables
@@ -145,10 +143,10 @@ shrink:         do while (micro(1) > prevenr)
 
         temp = pack(vec_in, vec_in > 0)
         do i=1,size(temp)-1
-            ! b=genrand64_real1()
-            b = genrand_double1(mts)
             ! Generate random integer in range [1,...,size of atmosphere]
-            !call random_integer(i,size(temp),j)
+            ! b=genrand64_real1()   ! MT RNG
+            b = genrand_double1(mts)    ! MT RNG for multiple streams
+            ! call random_integer(i,size(temp),j)   ! wrapper for gcc RNG
             j = i + floor((size(temp) + 1 - i)*b)
             a = temp(j)
             temp(j) = temp(i)
@@ -185,7 +183,6 @@ shrink:         do while (micro(1) > prevenr)
         ! Add step to chain
         call add_to_chain(micro(1))    ! Takes current  length
         ! Update micro
-        ! micro=get_micro(chain(:,1:micro(1)+1))
         call update_micro(chain(:,1:micro(1)+1), visits, micro)
 
         ! Update weight if fixed local weight is set
@@ -211,7 +208,7 @@ shrink:         do while (micro(1) > prevenr)
             endif
         endif
 
-        ! Update thermo/radius
+        ! Update thermo/radius data arrays
         !$omp atomic update
             Z(micro(1),micro(2),micro(3)) = Z(micro(1),micro(2),micro(3)) + weight
         !$omp atomic update
@@ -276,8 +273,7 @@ shrink:         do while (micro(1) > prevenr)
             integer                 :: i, j, d(lattdim)
 
             ! Choose step from atmosphere (already shuffled)
-            ! minloc should find the first 0 in (shuffled) atmo,
-            ! so this chooses the last direction in the list
+            ! minloc should find the first 0 in (shuffled) atmo, so this chooses the last direction in the list
             ! Caution: minloc is a tricky function
             if (count(history_atmo(:,i_hist) > 0) == size(history_atmo, 1)) then
                 i = size(history_atmo,1)
@@ -291,7 +287,6 @@ shrink:         do while (micro(1) > prevenr)
             d = directions(:,j)
 
             ! choose random point from atmosphere for next step
-            ! chain(:,L+1)=chain(:,L)+directions(:,history_atmo(i,i_hist))
             if (lattice_type == 'hex') then
                 ! if (i==coord) then
                 if (history_atmo(i,i_hist) == coord) then
@@ -336,11 +331,11 @@ shrink:         do while (micro(1) > prevenr)
         type(fhash_type__ints_ints),intent(inout)   :: visits
         integer     :: i, old_n
         logical     :: err
+
         ! Don't need to recalculate all microcanonical weights until shrinking is finished
-        ! micro(1)=micro(1)-1
         old_n = micro(1)
         micro(1:numpar) = history_enr(:,i_hist)
-        ! chain(:,micro(1)+1:Nmax+1)=0
+        
         ! remove visits; need loop in case jump back is more than one step
         do i = old_n, micro(1) + 1, -1
             ! remove visit from hash table

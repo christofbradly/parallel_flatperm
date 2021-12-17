@@ -32,7 +32,7 @@ module globals
     integer     :: compress_strength
 
     ! Declare input parameters
-    integer             :: Nmax, Lmax, numpar, instance, max_instances!, max_holes
+    integer             :: Nmax, Lmax, numpar, instance, max_instances
     integer             :: input_seed
     integer(8)          :: OldTours, NewTours, OldSamples, OldSamplesN
     real(qp)            :: mu, fixed_weight, fixed2_weight, normq
