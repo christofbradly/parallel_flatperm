@@ -117,6 +117,7 @@ program main
     do s = OldTours + 1, OldTours + NewTours
         call run_flatperm(s, mts)
 
+        ! #########     OBSOLETE    ###################
         ! Regular saving only needed for resuming, which does not work with parallel implementation
         ! check for regular save point
         ! if (tID == 1) then
@@ -134,7 +135,7 @@ program main
         !         wsavetime = omp_get_wtime()
         !     end if
         ! end if
-
+        !
         ! if save is triggered pause threads until save is complete
         ! if (saveQ) then
         !     if (tID == 1) then
@@ -177,6 +178,7 @@ program main
         !         wstart = wstart + omp_get_wtime() - wsavetime
         !     end if
         ! end if
+        ! #########     OBSOLETE    ###################
 
         ! record completed tours
         s_complete(tID) = s_complete(tID) + 1_8
@@ -197,7 +199,7 @@ program main
     ! Clean up and output
     call output_sim(sum(s_complete))
     deallocate(s_complete, thread_wait, wtime, datadir)
-    ! !$ if (allocated(Zval_lock)) deallocate(Zval_lock)
+    ! !$ if (allocated(Zval_lock)) deallocate(Zval_lock)    ! do not need locks
     ! !$ if (allocated(effval_lock)) deallocate(effval_lock)
     ! !$ if (bestQ) deallocate(best_lock)
 
