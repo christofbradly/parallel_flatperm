@@ -25,6 +25,22 @@ Additional requirements:
  - [fhash](https://github.com/jl2922/fhash): Fortran implementation of a generic hash table. I have included a version with some necessary modifications. In particular, the original node removal functinoality does not work.
 
 
+## Notes on variables
+The main program has a set of data arrays (histograms) and a loop over a defined number of tours.
+Within each tour there is a loop that attempts to grow a walk step-by-step up to some maximum length `Nmax`, using the flatPERM algorithm to choose/commit/prune/enrich valid steps.
+The state of the walk is stored in a number of variables:
+- `chain`: an integer array of the occupied lattice sites in order
+- `visits`: a hash table for querying which steps are occupying a lattice point
+- `micro`: a short vector storing the microcanonical parameters of the state, used to index the histograms
+- `history_`: a variety of arrays recording the value of several state variables in the order that the algorithm proceeds through state space (not the SAW)
+- `i_hist`: an index for the history arrays
+
+The use of history arrays is in lieu of a recursive implementation.
+The files `microcanonical.f90` and `radius.f90` contain wrappers for calculating microcanonical parameters and metric quantities.
+`savedata.f90` handles the HDF5 routines for saving the histograms.
+Other files are for initialising the program, handling input arguments etc.
+
+
 
 
 [^1]: [Prellberg & Krawczyk, *PRL*, 2004](https://doi.org/10.1103/PhysRevLett.92.120602)
